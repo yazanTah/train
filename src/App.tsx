@@ -1,5 +1,22 @@
-import { CheckCircle, Dumbbell, TrendingUp, Trophy, User } from "lucide-react"
+import { clsx, type ClassValue } from "clsx"
+import { AnimatePresence, motion } from "framer-motion"
+import {
+	CheckCircle,
+	ChevronRight,
+	Dumbbell,
+	Flame,
+	Target,
+	TrendingUp,
+	Trophy,
+	User,
+	Zap,
+} from "lucide-react"
 import { useState } from "react"
+import { twMerge } from "tailwind-merge"
+
+function cn(...inputs: ClassValue[]) {
+	return twMerge(clsx(inputs))
+}
 
 type DailyGoalKey = "steps" | "neck" | "forearms" | "water"
 
@@ -25,12 +42,15 @@ const App = () => {
 		},
 	})
 
-	const [currentCycle, setCurrentCycle] = useState(0) // 0: Upper, 1: Lower A, 2: Lower B
+	const [currentCycle, setCurrentCycle] = useState(0)
+	const [isSyncing, setIsSyncing] = useState(false)
+	const [completedExercises, setCompletedExercises] = useState<number[]>([])
 
 	const protocol = [
 		{
 			title: "UPPER BODY: V-TAPER",
 			desc: "Priority: Wide Lats & Boulder Shoulders",
+			accent: "from-amber-500 to-orange-600",
 			exercises: [
 				{
 					name: "Cluster Pull-ups",
@@ -57,6 +77,7 @@ const App = () => {
 		{
 			title: "LOWER BODY: POWER",
 			desc: "Priority: Explosive Quads & Agility",
+			accent: "from-blue-500 to-indigo-600",
 			exercises: [
 				{
 					name: "Bulgarian Split Squats",
@@ -83,6 +104,7 @@ const App = () => {
 		{
 			title: "LOWER BODY: CORE & POSTURE",
 			desc: "Priority: Ab Density & Spine Alignment",
+			accent: "from-emerald-500 to-teal-600",
 			exercises: [
 				{
 					name: "Wall Sits",
@@ -109,12 +131,27 @@ const App = () => {
 	]
 
 	const handleComplete = () => {
-		setUserStats(prev => ({
-			...prev,
-			exp: prev.exp + 150,
-			reps: prev.reps + 50,
-		}))
-		setCurrentCycle((currentCycle + 1) % 3)
+		if (completedExercises.length < protocol[currentCycle].exercises.length) {
+			setCompletedExercises(protocol[currentCycle].exercises.map((_, i) => i))
+		}
+
+		setIsSyncing(true)
+		setTimeout(() => {
+			setUserStats(prev => ({
+				...prev,
+				exp: prev.exp + 150,
+				reps: prev.reps + 50,
+			}))
+			setCurrentCycle((currentCycle + 1) % 3)
+			setCompletedExercises([])
+			setIsSyncing(false)
+		}, 1500)
+	}
+
+	const toggleExercise = (index: number) => {
+		setCompletedExercises(prev =>
+			prev.includes(index) ? prev.filter(i => i !== index) : [...prev, index],
+		)
 	}
 
 	const toggleGoal = (goal: DailyGoalKey) => {
@@ -125,144 +162,312 @@ const App = () => {
 	}
 
 	return (
-		<div className="app-root min-h-screen bg-stone-950 text-stone-200 font-sans p-4 pb-24">
-			{/* Header */}
-			<header className="max-w-md mx-auto mb-8 pt-4">
-				<div className="flex justify-between items-end">
+		<div className="min-h-screen bg-stone-950 text-stone-200 font-sans selection:bg-amber-500/30">
+			{/* Background Glow */}
+			<div className="fixed inset-0 overflow-hidden pointer-events-none">
+				<div className="absolute -top-[10%] -left-[10%] w-[40%] h-[40%] bg-amber-500/10 blur-[120px] rounded-full" />
+				<div className="absolute top-[20%] -right-[10%] w-[30%] h-[30%] bg-orange-600/5 blur-[100px] rounded-full" />
+			</div>
+
+			<div className="relative z-10 max-w-lg mx-auto px-6 pt-8 pb-32">
+				{/* Header */}
+				<motion.header
+					initial={{ opacity: 0, y: -20 }}
+					animate={{ opacity: 1, y: 0 }}
+					className="flex justify-between items-center mb-10"
+				>
 					<div>
-						<h1 className="text-3xl font-black italic tracking-tighter text-amber-500 uppercase">
+						<h1 className="text-4xl font-black italic tracking-tighter text-transparent bg-clip-text bg-linear-to-r from-amber-400 to-orange-600 uppercase leading-none">
 							Übermensch
 						</h1>
-						<p className="text-[10px] font-bold tracking-[0.3em] text-stone-500">
-							KOENJI PROTOCOL v2.1
+						<div className="flex items-center gap-2 mt-1">
+							<span className="h-px w-4 bg-stone-700" />
+							<p className="text-[10px] font-bold tracking-[0.4em] text-stone-500 uppercase">
+								Protocol v2.1
+							</p>
+						</div>
+					</div>
+					<div className="bg-stone-900/50 backdrop-blur-md border border-stone-800/50 rounded-2xl p-3 text-right">
+						<p className="text-[9px] font-bold text-stone-500 uppercase tracking-wider">
+							Weight
+						</p>
+						<p className="text-xl font-black text-white leading-none">
+							{userStats.weight}
+							<span className="text-xs text-stone-500 ml-0.5">kg</span>
 						</p>
 					</div>
-					<div className="text-right">
-						<p className="text-[10px] font-bold text-stone-600 uppercase">
-							Current Weight
-						</p>
-						<p className="text-xl font-black text-white">
-							{userStats.weight}kg
-						</p>
-					</div>
-				</div>
-			</header>
+				</motion.header>
 
-			<div className="container max-w-md mx-auto space-y-6">
-				{/* Rank Card */}
-				<div className="card rank-card bg-stone-900 border border-stone-800 rounded-3xl p-6 relative overflow-hidden">
-					<div className="absolute top-0 right-0 p-4 opacity-10">
-						<Trophy size={80} />
-					</div>
-					<p className="text-[10px] font-bold text-amber-500 uppercase mb-1">
-						Current Standing
-					</p>
-					<h2 className="text-2xl font-black italic mb-4">{userStats.rank}</h2>
-					<div className="w-full bg-stone-800 h-1.5 rounded-full overflow-hidden">
-						<div className="bg-amber-500 h-full w-1/3 shadow-[0_0_10px_rgba(245,158,11,0.5)]"></div>
-					</div>
-					<div className="flex justify-between mt-2">
-						<p className="text-[10px] font-bold text-stone-500">
-							{userStats.exp} EXP
-						</p>
-						<p className="text-[10px] font-bold text-stone-500 italic">
-							NEXT: INITIATE
-						</p>
-					</div>
-				</div>
+				<div className="space-y-8">
+					{/* Rank Card */}
+					<motion.div
+						initial={{ opacity: 0, scale: 0.95 }}
+						animate={{ opacity: 1, scale: 1 }}
+						transition={{ delay: 0.1 }}
+						className="relative group"
+					>
+						<div className="absolute -inset-0.5 bg-linear-to-r from-amber-500/20 to-orange-600/20 rounded-4xl blur opacity-75 group-hover:opacity-100 transition duration-1000 group-hover:duration-200" />
+						<div className="relative bg-stone-900 border border-stone-800/50 rounded-4xl p-8 overflow-hidden">
+							<div className="absolute top-0 right-0 p-6 opacity-[0.03] -rotate-12 group-hover:rotate-0 transition-transform duration-700">
+								<Trophy size={120} />
+							</div>
 
-				{/* Current Workout */}
-				<div className="space-y-4">
-					<div className="flex justify-between items-center px-2">
-						<h3 className="text-sm font-black uppercase text-stone-400">
-							Today's Mission
-						</h3>
-						<span className="text-[10px] bg-amber-500/10 text-amber-500 px-2 py-1 rounded font-bold">
-							CYCLE DAY {currentCycle + 1}
-						</span>
-					</div>
+							<div className="flex items-center gap-2 mb-2">
+								<Zap size={14} className="text-amber-500 fill-amber-500" />
+								<p className="text-[10px] font-black text-amber-500 uppercase tracking-[0.2em]">
+									Current Standing
+								</p>
+							</div>
 
-					<div className="card workout-card bg-stone-900 border border-stone-800 rounded-3xl p-5">
-						<h4 className="text-xl font-black italic mb-1">
-							{protocol[currentCycle].title}
-						</h4>
-						<p className="text-xs text-stone-500 mb-6">
-							{protocol[currentCycle].desc}
-						</p>
+							<h2 className="text-3xl font-black italic mb-6 tracking-tight">
+								{userStats.rank}
+							</h2>
 
-						<div className="space-y-4">
-							{protocol[currentCycle].exercises.map((ex, i) => (
-								<div key={i} className="flex items-start gap-4 group">
-									<div className="w-8 h-8 rounded-lg bg-stone-800 flex items-center justify-center shrink-0 group-hover:bg-amber-500/20 transition-colors">
-										<span className="text-xs font-black text-amber-500">
-											{i + 1}
-										</span>
-									</div>
-									<div>
-										<p className="text-sm font-bold text-white uppercase">
-											{ex.name}
-										</p>
-										<p className="text-[10px] text-stone-500 font-bold">
-											{ex.target} •{" "}
-											<span className="text-stone-400 italic">{ex.logic}</span>
-										</p>
-									</div>
+							<div className="space-y-3">
+								<div className="flex justify-between items-end">
+									<p className="text-xs font-bold text-stone-400">
+										Progress to Initiate
+									</p>
+									<p className="text-xs font-black text-white">
+										{userStats.exp}{" "}
+										<span className="text-stone-500 font-bold">/ 1000 EXP</span>
+									</p>
 								</div>
-							))}
+								<div className="w-full bg-stone-800/50 h-2.5 rounded-full overflow-hidden p-0.5 border border-stone-700/30">
+									<motion.div
+										initial={{ width: 0 }}
+										animate={{ width: `${(userStats.exp / 1000) * 100}%` }}
+										className="bg-linear-to-r from-amber-500 to-orange-600 h-full rounded-full shadow-[0_0_15px_rgba(245,158,11,0.4)]"
+									/>
+								</div>
+							</div>
+						</div>
+					</motion.div>
+
+					{/* Current Workout */}
+					<div className="space-y-5">
+						<div className="flex justify-between items-center px-2">
+							<div className="flex items-center gap-2">
+								<Target size={16} className="text-stone-500" />
+								<h3 className="text-xs font-black uppercase tracking-widest text-stone-400">
+									Today's Mission
+								</h3>
+							</div>
+							<span className="text-[10px] bg-amber-500/10 text-amber-500 px-3 py-1 rounded-full border border-amber-500/20 font-black tracking-tighter">
+								CYCLE DAY {currentCycle + 1}
+							</span>
 						</div>
 
-						<button
-							onClick={handleComplete}
-							className="w-full mt-8 bg-amber-500 text-black font-black py-4 rounded-2xl uppercase text-xs tracking-widest hover:bg-amber-400 active:scale-95 transition-all shadow-xl shadow-amber-900/10"
-						>
-							Sync Mission Data
-						</button>
-					</div>
-				</div>
-
-				{/* Bonus Objectives */}
-				<div className="space-y-4">
-					<h3 className="text-sm font-black uppercase text-stone-400 px-2">
-						Übermensch Bonuses
-					</h3>
-					<div className="bonuses-grid grid grid-cols-2 gap-3">
-						{(Object.keys(userStats.dailyGoals) as DailyGoalKey[]).map(goal => (
-							<button
-								key={goal}
-								onClick={() => toggleGoal(goal)}
-								className={`p-4 rounded-2xl border text-left transition-all ${
-									userStats.dailyGoals[goal]
-										? "bg-amber-500 border-amber-500 text-black"
-										: "bg-stone-900 border-stone-800 text-stone-500"
-								}`}
+						<AnimatePresence mode="wait">
+							<motion.div
+								key={currentCycle}
+								initial={{ opacity: 0, x: 20 }}
+								animate={{ opacity: 1, x: 0 }}
+								exit={{ opacity: 0, x: -20 }}
+								className="bg-stone-900 border border-stone-800/50 rounded-4xl p-6 shadow-2xl"
 							>
-								<div className="flex justify-between items-center">
-									<span className="text-[10px] font-black uppercase">
-										{goal}
-									</span>
-									{userStats.dailyGoals[goal] && <CheckCircle size={12} />}
+								<div className="mb-8">
+									<h4 className="text-2xl font-black italic mb-1 tracking-tight">
+										{protocol[currentCycle].title}
+									</h4>
+									<p className="text-xs text-stone-500 font-medium">
+										{protocol[currentCycle].desc}
+									</p>
 								</div>
-							</button>
-						))}
+
+								<div className="space-y-5">
+									{protocol[currentCycle].exercises.map((ex, i) => (
+										<motion.div
+											initial={{ opacity: 0, y: 10 }}
+											animate={{ opacity: 1, y: 0 }}
+											transition={{ delay: i * 0.1 }}
+											key={i}
+											onClick={() => toggleExercise(i)}
+											className={cn(
+												"flex items-center gap-4 group cursor-pointer p-2 -mx-2 rounded-2xl transition-all duration-300",
+												completedExercises.includes(i)
+													? "bg-stone-800/30"
+													: "hover:bg-stone-800/20",
+											)}
+										>
+											<div
+												className={cn(
+													"w-10 h-10 rounded-xl border flex items-center justify-center shrink-0 transition-all duration-500",
+													completedExercises.includes(i)
+														? "bg-amber-500 border-amber-500 shadow-[0_0_15px_rgba(245,158,11,0.3)]"
+														: "bg-stone-800/50 border-stone-700/30 group-hover:border-amber-500/50",
+												)}
+											>
+												{completedExercises.includes(i) ? (
+													<CheckCircle size={18} className="text-black" />
+												) : (
+													<span className="text-xs font-black text-stone-400 group-hover:text-amber-500">
+														0{i + 1}
+													</span>
+												)}
+											</div>
+											<div className="flex-1">
+												<p
+													className={cn(
+														"text-sm font-bold uppercase tracking-wide transition-all duration-300",
+														completedExercises.includes(i)
+															? "text-stone-500 line-through"
+															: "text-white",
+													)}
+												>
+													{ex.name}
+												</p>
+												<div className="flex items-center gap-2 mt-0.5">
+													<p className="text-[10px] text-stone-500 font-bold uppercase tracking-tighter">
+														{ex.target}
+													</p>
+													<span className="w-1 h-1 rounded-full bg-stone-700" />
+													<p className="text-[10px] text-amber-500/70 font-bold italic">
+														{ex.logic}
+													</p>
+												</div>
+											</div>
+											<ChevronRight
+												size={14}
+												className={cn(
+													"transition-colors",
+													completedExercises.includes(i)
+														? "text-stone-800"
+														: "text-stone-700 group-hover:text-stone-500",
+												)}
+											/>
+										</motion.div>
+									))}
+								</div>
+
+								<button
+									onClick={handleComplete}
+									disabled={isSyncing}
+									className="relative w-full mt-10 group overflow-hidden rounded-2xl"
+								>
+									<div
+										className={cn(
+											"absolute inset-0 bg-linear-to-r from-amber-500 to-orange-600 transition-transform duration-500 group-hover:scale-105",
+											completedExercises.length ===
+												protocol[currentCycle].exercises.length
+												? "opacity-100"
+												: "opacity-50",
+										)}
+									/>
+									<div className="relative flex items-center justify-center gap-3 py-5 px-8 text-black font-black uppercase text-xs tracking-[0.2em]">
+										{isSyncing ? (
+											<motion.div
+												animate={{ rotate: 360 }}
+												transition={{
+													repeat: Infinity,
+													duration: 1,
+													ease: "linear",
+												}}
+											>
+												<Zap size={16} />
+											</motion.div>
+										) : (
+											<Flame
+												size={16}
+												className={cn(
+													completedExercises.length ===
+														protocol[currentCycle].exercises.length &&
+														"animate-pulse",
+												)}
+											/>
+										)}
+										{isSyncing
+											? "Syncing Protocol..."
+											: completedExercises.length ===
+											  protocol[currentCycle].exercises.length
+											? "Complete Mission"
+											: "Sync Mission Data"}
+									</div>
+								</button>
+							</motion.div>
+						</AnimatePresence>
+					</div>
+
+					{/* Bonus Objectives */}
+					<div className="space-y-5">
+						<div className="flex items-center gap-2 px-2">
+							<Flame size={16} className="text-stone-500" />
+							<h3 className="text-xs font-black uppercase tracking-widest text-stone-400">
+								Übermensch Bonuses
+							</h3>
+						</div>
+						<div className="grid grid-cols-2 gap-4">
+							{(Object.keys(userStats.dailyGoals) as DailyGoalKey[]).map(
+								goal => (
+									<motion.button
+										whileTap={{ scale: 0.95 }}
+										key={goal}
+										onClick={() => toggleGoal(goal)}
+										className={cn(
+											"relative p-5 rounded-2xl border transition-all duration-500 text-left overflow-hidden group",
+											userStats.dailyGoals[goal]
+												? "bg-amber-500 border-amber-400 text-black shadow-[0_10px_20px_rgba(245,158,11,0.2)]"
+												: "bg-stone-900/50 border-stone-800/50 text-stone-500 hover:border-stone-700",
+										)}
+									>
+										{userStats.dailyGoals[goal] && (
+											<motion.div
+												layoutId="goal-bg"
+												className="absolute inset-0 bg-linear-to-br from-amber-400 to-amber-600"
+											/>
+										)}
+										<div className="relative flex justify-between items-start h-full">
+											<span
+												className={cn(
+													"text-[11px] font-black uppercase tracking-widest",
+													userStats.dailyGoals[goal]
+														? "text-black"
+														: "text-stone-400 group-hover:text-stone-200",
+												)}
+											>
+												{goal}
+											</span>
+											{userStats.dailyGoals[goal] ? (
+												<CheckCircle size={16} className="text-black" />
+											) : (
+												<div className="w-4 h-4 rounded-full border-2 border-stone-800 group-hover:border-stone-700" />
+											)}
+										</div>
+									</motion.button>
+								),
+							)}
+						</div>
 					</div>
 				</div>
 			</div>
 
 			{/* Navigation Bar */}
-			<nav className="bottom-nav fixed bottom-6 left-1/2 -translate-x-1/2 w-[90%] max-w-sm bg-black/80 backdrop-blur-xl border border-stone-800 rounded-full p-2 flex justify-between shadow-2xl">
-				<button className="flex-1 flex flex-col items-center py-2 text-amber-500">
-					<Dumbbell size={20} />
-					<span className="text-[8px] font-black uppercase mt-1">Train</span>
-				</button>
-				<button className="flex-1 flex flex-col items-center py-2 text-stone-600">
-					<TrendingUp size={20} />
-					<span className="text-[8px] font-black uppercase mt-1">Stats</span>
-				</button>
-				<button className="flex-1 flex flex-col items-center py-2 text-stone-600">
-					<User size={20} />
-					<span className="text-[8px] font-black uppercase mt-1">Notlu</span>
-				</button>
-			</nav>
+			<div className="fixed bottom-8 left-0 right-0 px-6 z-50">
+				<nav className="max-w-sm mx-auto bg-stone-900/80 backdrop-blur-2xl border border-stone-800/50 rounded-4xl p-2 flex justify-between shadow-[0_20px_50px_rgba(0,0,0,0.5)]">
+					<button className="flex-1 flex flex-col items-center py-3 text-amber-500 relative">
+						<Dumbbell size={22} />
+						<span className="text-[9px] font-black uppercase mt-1.5 tracking-tighter">
+							Train
+						</span>
+						<motion.div
+							layoutId="nav-indicator"
+							className="absolute -bottom-1 w-1 h-1 rounded-full bg-amber-500"
+						/>
+					</button>
+					<button className="flex-1 flex flex-col items-center py-3 text-stone-600 hover:text-stone-400 transition-colors">
+						<TrendingUp size={22} />
+						<span className="text-[9px] font-black uppercase mt-1.5 tracking-tighter">
+							Stats
+						</span>
+					</button>
+					<button className="flex-1 flex flex-col items-center py-3 text-stone-600 hover:text-stone-400 transition-colors">
+						<User size={22} />
+						<span className="text-[9px] font-black uppercase mt-1.5 tracking-tighter">
+							Profile
+						</span>
+					</button>
+				</nav>
+			</div>
 		</div>
 	)
 }
